@@ -172,7 +172,7 @@ class App:
 
     def enemies_on_top_line(self):
         def first_enemy_is_on_top_row(enemy_line):
-            if enemy_line[0][0] < 2:
+            if len(enemy_line) > 0 and enemy_line[0][0] < 2:
                 return True
         return len(list(filter(first_enemy_is_on_top_row, self.enemy_rows)))
 

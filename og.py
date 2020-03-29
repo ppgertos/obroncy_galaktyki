@@ -16,7 +16,7 @@ class App:
         self.running = True
         self.missleyx = None
         self.recent_missleyx = None
-        self.enemies = self.init_enemies()
+        self.enemy_rows = self.init_enemies()
         self.enemy_delay = 0
         self.enemy_dx = 1
         self.frame_time = 25
@@ -43,7 +43,7 @@ class App:
     
     def on_next_level(self, new_delay_val):
         self.state = "game"
-        self.enemies = self.init_enemies()
+        self.enemy_rows = self.init_enemies()
         self.starting_enemy_delay = new_delay_val
     
     def on_win(self):
@@ -97,9 +97,9 @@ class App:
             window.addstr( i, 62, "||")
             window.addstr(2, 65, f"  Score: {self.score}")
             window.addstr(4, 65, f"Hiscore: {self.hiscore}")
-        for line in self.enemies:
+        for line in self.enemy_rows:
             for ey, ex in line:
-                window.addstr(ey, ex-1, "<%>", curses.color_pair(self.enemies.index(line)+1))
+                window.addstr(ey, ex-1, "<%>", curses.color_pair(self.enemy_rows.index(line)+1))
         if self.missleyx:
             my, mx = self.missleyx
             window.addstr(my,   mx, "|", self.next_col_pair())
@@ -128,7 +128,7 @@ class App:
         window.refresh()
 
     def get_hitten_enemy(self, my, mx):
-        for line in self.enemies:
+        for line in self.enemy_rows:
             targets = list(filter(lambda e: e[0] == my and\
                 (e[1] in [mx-1, mx, mx+1]), line))
             if targets:
@@ -145,7 +145,7 @@ class App:
                 self.missleyx = (my, mx)
                 enemy = self.get_hitten_enemy(my, mx)
                 if enemy:
-                    for line in self.enemies:
+                    for line in self.enemy_rows:
                         if enemy in line:
                             line.pop(line.index(enemy))
                             self.score += 10
@@ -153,7 +153,7 @@ class App:
 
     def simulate_enemies(self):
         go_up = False
-        for line in self.enemies:
+        for line in self.enemy_rows:
             for enemy in line:
                 ey, ex = enemy
                 ex += self.enemy_dx
@@ -163,13 +163,23 @@ class App:
                 line[line.index(enemy)] = (ey, ex)
         if go_up:
             self.enemy_dx = -self.enemy_dx
-            for line in self.enemies:
+            for line in self.enemy_rows:
                 for enemy in line:
                     ey, ex = enemy
                     ey -= 1
                     if enemy in line:
                         line[line.index(enemy)] = (ey, ex)
 
+    def enemies_on_top_line(self):
+        def first_enemy_is_on_top_row(enemy_line):
+            if enemy_line[0][0] < 2:
+                return True
+        return len(list(filter(first_enemy_is_on_top_row, self.enemy_rows)))
+
+            
+    def no_enemies_left(self):
+        return len(list(filter(lambda er: len(er) > 0, self.enemy_rows))) == 0
+        
     def simulate(self, window):
         self.simulate_missle()
         if self.enemy_delay > 0:
@@ -177,9 +187,9 @@ class App:
         else:
             self.enemy_delay = self.starting_enemy_delay
             self.simulate_enemies()
-        if len(self.enemies) == 0:
+        if self.no_enemies_left():
             self.state = "win"
-        elif len(list(filter(lambda e: e[0] == 1, self.enemies))):
+        elif self.enemies_on_top_line():
             self.state = "lose"
     
     def start(self, window):
@@ -196,8 +206,8 @@ class App:
         window.timeout(self.frame_time)
     
     def main(self, window):
-        curses.resize_term(42,90)
         self.start(window)
+        curses.resize_term(42,90)
         while self.running:
             self.event(window)
             self.simulate(window)

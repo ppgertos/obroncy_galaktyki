@@ -196,6 +196,7 @@ class App:
         window.timeout(self.frame_time)
     
     def main(self, window):
+        curses.resize_term(42,90)
         self.start(window)
         while self.running:
             self.event(window)
